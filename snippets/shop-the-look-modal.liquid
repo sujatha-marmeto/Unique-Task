@@ -1,0 +1,57 @@
+<!-- Quick View Modal -->
+<div id="quickViewModal" class="quick-view-modal hidden" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;background:rgba(0,0,0,0.5);display:flex;justify-content:center;align-items:center;">
+  <div class="quick-view-modal-backdrop" data-modal-backdrop style="position:absolute;width:100%;height:100%;top:0;left:0;"></div>
+  
+  <div style="position:relative;z-index:10;width:90%;max-width:1000px;background:#fff;border-radius:8px;padding:20px;">
+    <button class="quick-view-modal-close" data-modal-close style="position:absolute;top:10px;right:10px;background:none;border:none;font-size:2rem;cursor:pointer;">×</button>
+    
+    <div id="quickViewModalContent">
+      <!-- dynamic content gets loaded here -->
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('click', function(event) {
+    const quickViewBtn = event.target.closest('[data-quick-view]');
+    if (quickViewBtn) {
+      const handle = quickViewBtn.getAttribute('data-quick-view');
+      openQuickViewModal(handle);
+      return;
+    }
+
+    if (event.target.closest('[data-modal-close], [data-modal-backdrop]')) {
+      closeQuickViewModal();
+      return;
+    }
+  });
+
+  function openQuickViewModal(productHandle) {
+    const modal = document.getElementById('quickViewModal');
+    const content = document.getElementById('quickViewModalContent');
+    modal.classList.remove('hidden');
+    content.innerHTML = '<div class="loading">Loading...</div>';
+
+    const quickViewEl = document.createElement('quick-view-product');
+    quickViewEl.setAttribute('data-url', `/products/${productHandle}`);
+    quickViewEl.setAttribute('data-product-id', productHandle);
+
+    // Optional: if your web component has a title or section ID
+    // quickViewEl.setAttribute('data-section-id', 'main-product');
+
+    content.innerHTML = '';
+    content.appendChild(quickViewEl);
+
+    // Optionally call component method if defined
+    if (typeof quickViewEl.openQuickView === 'function') {
+      quickViewEl.openQuickView();
+    }
+  }
+
+  function closeQuickViewModal() {
+    const modal = document.getElementById('quickViewModal');
+    const content = document.getElementById('quickViewModalContent');
+    modal.classList.add('hidden');
+    content.innerHTML = '';
+  }
+</script>

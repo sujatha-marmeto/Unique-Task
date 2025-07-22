@@ -267,3 +267,39 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+
+ if (!customElements.get('quick-view-product')) {
+    customElements.define(
+      'quick-view-product',
+      class QuickViewProduct extends HTMLElement {
+        constructor() {
+          super();
+          // Initialization logic for the quick view product
+
+        }
+        connectedCallback() {
+          // Set up event listeners or initial state
+          const productUrl = this.getAttribute('data-url');
+          console.log("Quick View Product URL:", productUrl);
+          fetch(`${productUrl}/?section_id=template--18157439680674__main`)
+          .then(res => {
+            console.log("Quick View Product URL:", res);
+            return res.text();
+          })
+          .then(data => {
+            const parser = new DOMParser()
+            console.log("Quick View Product Data:", data);
+            const htmlDoc = parser.parseFromString(data, "text/html")
+            const sourceQty = htmlDoc.querySelector('.product-details-section');
+            if (!sourceQty) {
+              console.error("Product details section not found in the fetched HTML.");
+              return;
+            }
+            this.innerHTML = sourceQty.innerHTML; 
+            
+          })
+          .catch(err => console.error("Error:", err))
+        }
+      }
+    );
+  }

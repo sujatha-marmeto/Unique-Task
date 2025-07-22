@@ -1,0 +1,521 @@
+{{ 'shop-the-look.css' | asset_url | stylesheet_tag }}
+
+<!-- Modal -->
+<div id="lookVideoModal" class="look-modal hidden">
+  <div class="look-modal-backdrop" data-modal-backdrop></div>
+  <button class="look-modal-close" data-modal-close>×</button>
+  <button id="lookModalPrevBtn" data-modal-prev>&#8592;</button>
+  <button id="lookModalNextBtn" data-modal-next>&#8594;</button>
+  <div class="look-modal-content">
+    {% for block in section.blocks %}
+      <div class="look-modal-slide" id="lookModalSlide-{{ forloop.index0 }}" style="width:100%;height:100%;position:absolute;">
+        <div class="look-modal-video-section" style="width:100%;height:100%;position:relative;z-index:1;">
+          <div class="look-modal-video-container" style="width:100%;height:100%;">
+            {% assign video = block.settings.look_viedo %}
+            {% assign mp4_source = video.sources | where: 'format', 'mp4' | first %}
+            {% if video %}
+              <video
+                src="{{ mp4_source.url | prepend: 'https:' }}"
+                autoplay
+                muted
+                loop
+                playsinline
+                class="look-video"
+                style="width:100%;height:100%;object-fit:cover;border-radius:20px"
+                {% if video.preview_image %}
+                  poster="{{ video.preview_image | image_url: width: 800 }}"
+                {% endif %}
+              ></video>
+            {% endif %}
+          </div>
+          <div class="look-modal-quick-view-container" style="display: none;"></div>
+          <div class="look-modal-products-section">
+            <div class="swiper look-modal-product-swiper-{{ forloop.index0 }}">
+              <div class="swiper-wrapper">
+                {% for i in (1..3) %}
+                  {% capture key %}product_{{ i }}{% endcapture %}
+                  {% assign product = block.settings[key] %}
+                  {% if product %}
+                    <div class="swiper-slide">
+                      <div class="look-product-card">
+                        <button class="quick-view-icon" data-quick-view="{{ product.handle }}" aria-label="Quick View">
+                          <svg viewBox="0 0 24 24">
+                            <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                          </svg>
+                        </button>
+                        <img 
+                          src="{{ product.featured_image | image_url: width: 200 }}" 
+                          alt="{{ product.title }}"
+                          class="look-product-image"
+                          width="200"
+                          height="120"
+                        >
+                        <div class="look-product-info">
+                          <div class="look-product-title">{{ product.title }}</div>
+                          <div class="look-product-price">
+                            {% if product.compare_at_price > product.price %}
+                              <span class="original-price">{{ product.compare_at_price | money }}</span>
+                            {% endif %}
+                            <span class="sale-price">{{ product.price | money }}</span>
+                          </div>
+                          {% comment %} <button class="look-product-add" data-add-to-cart="{{ product.variants.first.id }}" style="width:90%;margin:0 auto;">
+                            ADD TO CART
+                          </button> {% endcomment %}
+                             <product-form data-section-id="{{ section.id }}" >
+                              {%- form 'product',
+                                product,
+                                class: 'form',
+                                novalidate: 'novalidate',
+                                data-type: 'add-to-cart-form'
+                              -%}
+                                <input
+                                  type="hidden"
+                                  name="id"
+                                  value="{{ product.selected_or_first_available_variant.id }}"
+                                  class="product-variant-id"
+                                  {% if product.selected_or_first_available_variant.available == false %}
+                                    disabled
+                                  {% endif %}
+                                >
+                                <button
+                                  type="submit"
+                                  name="add"
+                                  class="quick-add__submit button button--full-width button--secondary look-product-add"
+                                  aria-haspopup="dialog"
+                                  aria-labelledby="submit title-{{ product.id }}"
+                                  aria-live="polite"
+                                  data-sold-out-message="true"
+                                  {% if product.selected_or_first_available_variant.available == false %}
+                                    disabled
+                                  {% endif %}
+                                >
+                                  <span>
+                                    {%- if product.selected_or_first_available_variant.available -%}
+                                      {{ 'products.product.add_to_cart' | t }}
+                                    {%- else -%}
+                                      {{ 'products.product.sold_out' | t }}
+                                    {%- endif -%}
+                                  </span>
+                                  <span class="sold-out-message hidden">
+                                    {{ 'products.product.sold_out' | t }}
+                                  </span>
+                                  {%- render 'loading-spinner' -%}
+                                </button>
+                              {%- endform -%}
+                            </product-form>
+                        </div>
+                      </div>
+                    </div>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Main Carousel -->
+<div class="swiper shop-the-look-swiper page-width">
+  <div class="swiper-wrapper">
+    {% for block in section.blocks %}
+      {% assign video = block.settings.look_viedo %}
+      {% assign video_index = forloop.index0 %}
+      <div class="swiper-slide">
+        <div class="look-card" onclick="openLookModal({{ video_index }})" data-block-index="{{ video_index }}">
+          {% if video != blank and video.media_type == 'video' %}
+            {% assign mp4_source = video.sources | where: 'format', 'mp4' | first %}
+            <video
+              src="{{ mp4_source.url | prepend: 'https:' }}"
+              autoplay
+              muted
+              loop
+              playsinline
+              class="look-video"
+              {% if video.preview_image %}
+                poster="{{ video.preview_image | image_url: width: 800 }}"
+              {% endif %}
+            ></video>
+          {% endif %}
+          <div class="look-label">
+            {% if block.settings.media_image %}
+              <img 
+                src="{{ block.settings.media_image | image_url: width: 80 }}" 
+                class="look-thumbnail" 
+                alt=""
+                width="40"
+                height="40"
+              >
+            {% endif %}
+            <span class="look-collection-name">{{ block.settings.collection_name }}</span>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+
+  {% if section.settings.show_arrows %}
+    <div class="swiper-button-prev"></div>
+    <div class="swiper-button-next"></div>
+  {% endif %}
+
+  {% if section.settings.pagination %}
+    <div class="swiper-pagination"></div>
+  {% endif %}
+</div>
+
+
+<!-- JavaScript -->
+<script>
+  let currentVideoIndex = 0;
+  const totalSlides = {{ section.blocks.size }};
+  let currentProductSwiper = null;
+
+  function openLookModal(index) {
+    currentVideoIndex = index;
+    document.getElementById('lookVideoModal').classList.remove('hidden');
+    showCurrentVideoSlide();
+  }
+
+  function showCurrentVideoSlide() {
+    for (let i = 0; i < totalSlides; i++) {
+      const slide = document.getElementById('lookModalSlide-' + i);
+      slide.classList.remove('swiper-slide-prev', 'swiper-slide-active', 'swiper-slide-next');
+      if (i === currentVideoIndex) {
+        slide.classList.add('swiper-slide-active');
+        slide.style.zIndex = 3;
+      } else if (i === currentVideoIndex - 1) {
+        slide.classList.add('swiper-slide-prev');
+        slide.style.zIndex = 2;
+      } else if (i === currentVideoIndex + 1) {
+        slide.classList.add('swiper-slide-next');
+        slide.style.zIndex = 2;
+      } else {
+        slide.style.zIndex = 1;
+      }
+
+      // SHOW product cards only for the active slide
+      const productsSection = slide.querySelector('.look-modal-products-section');
+      if (productsSection) {
+        productsSection.style.display = (i === currentVideoIndex) ? 'flex' : 'none';
+      }
+    }
+
+    document.getElementById('lookModalPrevBtn').style.display = (currentVideoIndex > 0) ? '' : 'none';
+    document.getElementById('lookModalNextBtn').style.display = (currentVideoIndex < totalSlides - 1) ? '' : 'none';
+
+    // Destroy old Swiper
+    if (window.currentProductSwiper && typeof window.currentProductSwiper.destroy === 'function') {
+      window.currentProductSwiper.destroy(true, true);
+      window.currentProductSwiper = null;
+    }
+
+    // Create Swiper for current product cards only
+    setTimeout(function() {
+      window.currentProductSwiper = new Swiper('.look-modal-product-swiper-' + currentVideoIndex, {
+        slidesPerView: 'auto',
+        spaceBetween: 12,
+        allowTouchMove: true,
+        navigation: false,
+        pagination: false,
+        breakpoints: {
+          768: {
+            slidesPerView: 'auto',
+            spaceBetween: 16
+          }
+        }
+      });
+    }, 150);
+  }
+
+  function showPrevVideo() {
+    if (currentVideoIndex > 0) {
+      currentVideoIndex--;
+      showCurrentVideoSlide();
+    }
+  }
+  function showNextVideo() {
+    if (currentVideoIndex < totalSlides - 1) {
+      currentVideoIndex++;
+      showCurrentVideoSlide();
+    }
+  }
+  function closeLookModal() {
+    document.getElementById('lookVideoModal').classList.add('hidden');
+  }
+
+  function addToCart(productId) {
+    fetch('/cart/add.js', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        id: productId,
+        quantity: 1
+      })
+    })
+    .then(res => {
+      if (!res.ok) throw new Error('Add to cart failed');
+      return res.json();
+    })
+    .then(() => {
+      window.location.reload(); 
+    })
+    .catch(error => {
+      console.error('Error adding to cart:', error);
+    });
+  } 
+
+  function updateSlideVisibility(swiper) {
+    swiper.slides.forEach((slide, idx) => {
+      slide.style.opacity = (
+        idx === swiper.activeIndex ||
+        idx === swiper.activeIndex - 1 ||
+        idx === swiper.activeIndex + 1
+      ) ? '1' : '0';
+      slide.style.pointerEvents = (
+        idx === swiper.activeIndex ||
+        idx === swiper.activeIndex - 1 ||
+        idx === swiper.activeIndex + 1
+      ) ? 'auto' : 'none';
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    new Swiper('.shop-the-look-swiper', {
+      slidesPerView: {{ section.settings.desktop_per_page }},
+      spaceBetween: {{ section.settings.gap }},
+      navigation: {
+        nextEl: '.shop-the-look-swiper .swiper-button-next',
+        prevEl: '.shop-the-look-swiper .swiper-button-prev'
+      },
+      {% if section.settings.pagination %}
+      pagination: {
+        el: '.swiper-pagination',
+        clickable: true
+      },
+      {% endif %}
+      breakpoints: {
+        768: {
+          slidesPerView: {{ section.settings.mobile_per_page }},
+          spaceBetween: {{ section.settings.gap_mobile }}
+        }
+      }
+    });
+  });
+
+ document.addEventListener('click', function(event) {
+  const quickViewBtn = event.target.closest('[data-quick-view]');
+  if (quickViewBtn) {
+    event.stopPropagation();
+    event.preventDefault();
+    const handle = quickViewBtn.getAttribute('data-quick-view');
+    const slide = quickViewBtn.closest('.look-modal-slide');
+    const slideId = slide ? slide.id.split('-').pop() : null;
+    if (slideId !== null) {
+      closeAllQuickViews(); // Hide other quick views
+      openQuickViewInSlide(handle, slideId);
+    }
+    return;
+  }
+
+  // Add to Cart
+  const addToCartBtn = event.target.closest('[data-add-to-cart]');
+  if (addToCartBtn) {
+    const variantId = addToCartBtn.getAttribute('data-add-to-cart');
+    addToCart(variantId, addToCartBtn);
+    return;
+  }
+
+  // Modal Close or Backdrop
+  if (event.target.closest('[data-modal-close], [data-modal-backdrop]')) {
+    closeLookModal();
+    closeAllQuickViews(); // Close Quick Views
+    return;
+  }
+
+  // Modal Prev
+  if (event.target.closest('[data-modal-prev]')) {
+    showPrevVideo();
+    return;
+  }
+
+  // Modal Next
+  if (event.target.closest('[data-modal-next]')) {
+    showNextVideo();
+    return;
+  }
+});
+
+  // After updating .shop-the-look-swiper content:
+  if (window.shopTheLookSwiper && typeof window.shopTheLookSwiper.destroy === 'function') {
+    window.shopTheLookSwiper.destroy(true, true);
+  }
+  window.shopTheLookSwiper = new Swiper('.shop-the-look-swiper', {
+    slidesPerView: window.ShopTheLookDesktopPerPage || 4,
+    spaceBetween: window.ShopTheLookGap || 16,
+    navigation: {
+      nextEl: '.shop-the-look-swiper .swiper-button-next',
+      prevEl: '.shop-the-look-swiper .swiper-button-prev'
+    },
+    pagination: window.ShopTheLookPagination ? {
+      el: '.swiper-pagination',
+      clickable: true
+    } : false,
+    breakpoints: {
+      768: {
+        slidesPerView: window.ShopTheLookMobilePerPage || 1,
+        spaceBetween: window.ShopTheLookGapMobile || 8
+      }
+    }
+  });
+ function openQuickViewInSlide(productHandle, slideIndex) {
+  const containerSelector = `.look-modal-slide#lookModalSlide-${slideIndex} .look-modal-quick-view-container`;
+  const container = document.querySelector(containerSelector);
+  if (!container) return;
+
+  container.style.display = 'flex';
+  container.innerHTML = '<div class="loading">Loading...</div>';
+
+  // Create wrapper
+  const wrapper = document.createElement('div');
+  wrapper.classList.add('quick-view-wrapper');
+  wrapper.style.position = 'relative';
+
+  // Create close button
+  const closeBtn = document.createElement('button');
+  closeBtn.innerHTML = '&times;';
+  closeBtn.classList.add('quick-view-close-btn');
+
+  closeBtn.addEventListener('click', closeAllQuickViews);
+
+  // Create quick-view-product element
+  const quickViewEl = document.createElement('quick-view-product');
+  quickViewEl.setAttribute('data-url', `/products/${productHandle}`);
+  quickViewEl.setAttribute('data-product-id', productHandle);
+
+  // Empty and rebuild container
+  container.innerHTML = '';
+  wrapper.appendChild(closeBtn);
+  wrapper.appendChild(quickViewEl);
+  container.appendChild(wrapper);
+
+  if (typeof quickViewEl.openQuickView === 'function') {
+    quickViewEl.openQuickView();
+  }
+}
+
+  function closeAllQuickViews() {
+    const all = document.querySelectorAll('.look-modal-quick-view-container');
+    all.forEach(el => {
+      el.style.display = 'none';
+      el.innerHTML = '';
+    });
+  }
+
+</script>
+
+{% schema %}
+{
+  "name": "Shop The Look Carousel",
+  "settings": [
+    {
+      "type": "range",
+      "id": "desktop_per_page",
+      "label": "Desktop Items Per Page",
+      "min": 1,
+      "max": 6,
+      "step": 1,
+      "default": 4
+    },
+    {
+      "type": "range",
+      "id": "mobile_per_page",
+      "label": "Mobile Items Per Page",
+      "min": 1,
+      "max": 3,
+      "step": 1,
+      "default": 1
+    },
+    {
+      "type": "range",
+      "id": "gap",
+      "label": "Desktop Gap (px)",
+      "min": 0,
+      "max": 32,
+      "step": 2,
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "gap_mobile",
+      "label": "Mobile Gap (px)",
+      "min": 0,
+      "max": 32,
+      "step": 2,
+      "default": 8
+    },
+    {
+      "type": "checkbox",
+      "id": "show_arrows",
+      "label": "Show Arrows",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "pagination",
+      "label": "Show Pagination Dots",
+      "default": false
+    }
+  ],
+  "blocks": [
+    {
+      "type": "look_item",
+      "name": "Look Item",
+      "settings": [
+        {
+          "type": "video",
+          "id": "look_viedo",
+          "label": "Look Video"
+        },
+        {
+          "type": "image_picker",
+          "id": "media_image",
+          "label": "Media Image"
+        },
+        {
+          "type": "text",
+          "id": "collection_name",
+          "label": "Collection Name",
+          "default": "Collection Name"
+        },
+        {
+          "type": "product",
+          "id": "product_1",
+          "label": "Linked Product 1"
+        },
+        {
+          "type": "product",
+          "id": "product_2",
+          "label": "Linked Product 2"
+        },
+        {
+          "type": "product",
+          "id": "product_3",
+          "label": "Linked Product 3"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Shop The Look",
+      "category": "Media"
+    }
+  ]
+}
+{% endschema %}
