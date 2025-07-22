@@ -1330,3 +1330,163 @@ class CartPerformance {
     );
   }
 }
+
+if (!customElements.get("carousel-component")) {
+  class Carousel extends HTMLElement {
+    constructor() {
+      super();
+      this.carouselElement = this;
+
+      // Parse the options' JSON from the data attribute
+      this.carouselOptions = JSON.parse(this.carouselElement.dataset.carouselOptions || '{}');
+
+      if (!this.carouselElement.classList.contains('splide')) return;
+
+      this.initCarousel();
+
+      // Listen for the custom 'updateSlider' event
+      this.addEventListener('updateSlider', (event) => {
+        if (this.carousel) {
+          const targetIndex = event.detail.index;
+          this.carousel.go(targetIndex);  // Move to the specified slide index
+        }
+      });
+    }
+
+    initCarousel() {
+      if (this.carouselOptions.destroyOnMobile && this.carouselOptions.destroyOnDesktop) return;
+
+      this.carousel = new Splide(this.carouselElement, {
+        perPage: this.carouselOptions.desktopPerPage || 4,
+        ...(this.carouselOptions.type ? { type: this.carouselOptions.type } : {}),
+        ...(this.carouselOptions.focus ? { focus: this.carouselOptions.focus } : {}),
+        autoplay: this.carouselOptions.autoplay || false,
+        interval: this.carouselOptions.autoplaySpeed || 3000,
+        gap: this.carouselOptions.gap || 0,
+        arrows: this.carouselOptions.showArrows || false,
+        pagination: this.carouselOptions.showDots || false,
+        isNavigation: this.carouselOptions.isNavigation || false,
+        drag: !(this.carouselOptions.disableDrag || false),
+        direction: this.carouselOptions.direction || 'ltr',
+        destroy: this.carouselOptions.destroyOnDesktop || false,
+        padding: {
+          left: this.carouselOptions.desktopPaddingLeft || '0',
+          right: this.carouselOptions.desktopPaddingRight || '0',
+        },
+        omitEnd: this.carouselOptions.omitEnd || false,
+        breakpoints: {
+          750: {
+            padding: {
+              left: this.carouselOptions.mobilePaddingLeft || '0',
+              right: this.carouselOptions.mobilePaddingRight || '0',
+            },
+            perPage: this.carouselOptions.mobilePerPage || 1,
+            arrows: this.carouselOptions.showArrowsOnMobile || false,
+            pagination: this.carouselOptions.showDotsOnMobile || false,
+            gap: this.carouselOptions.gapMobile || 0,
+            destroy: this.carouselOptions.destroyOnMobile || false,
+          }
+        }
+      });
+
+      if(this.carouselOptions.enableProgressBar)
+        this.initProgressBar(this.carousel);
+
+      if(this.carouselOptions.enableScrollBar) {
+        this.carousel.on('dragging dragged drag', () => {
+          this.handleSlideMovement();
+        })
+  
+        this.carousel.on('arrows:updated', () => {
+          this.handleSlideMovement();
+        });
+      }
+
+      if (this.carouselOptions.sync) {
+        this.initCarouselSync();
+      } else {
+        this.carousel.mount();
+      }
+
+      if (this.carouselOptions.refresh)
+        this.carousel.refresh();
+    }
+
+    initProgressBar(skeletonSplide) {
+      const bar = this.querySelector('splide-progress-bar');
+
+      if (!bar) return;
+
+      this.carousel.on('mounted move', function () {
+        const end = skeletonSplide.Components.Controller.getEnd() + 1;
+        const rate = Math.min((skeletonSplide.index + 1) / end, 1);
+        bar.style.width = String(100 * rate) + '%';
+      });
+    }
+
+    // This functionality does not work with slide type: "loop"
+    handleSlideMovement() {
+      const { Layout, Move, Direction } = this.carousel.Components;
+      const position = Direction.orient(Move.getPosition());
+      const base = Layout.sliderSize() - Layout.listSize();
+      const rate = Math.min(Math.max(position / base, 0), 1);
+      const scrollbar = this.querySelector('custom-scroll-bar');
+      const thumb = this.querySelector('.custom-scrollbar-thumb');
+
+      const thumbMaxTranslate = scrollbar.clientWidth - thumb.clientWidth;  
+      const thumbPosition = rate >= 0.9435 ? thumbMaxTranslate : rate * thumbMaxTranslate;
+
+      thumb.style.transform = `translateX(${thumbPosition}px)`;
+    }
+
+    initCarouselSync() {
+      this.syncParent = document.querySelector('carousel-component[data-sync-carousel="true"]');
+      const syncOptions = JSON.parse(this.syncParent.dataset.carouselOptions || '{}');
+    
+      if (!this.carouselOptions.sync) return;
+    
+      this.syncElement = document.querySelector(this.carouselOptions.sync);
+    
+      this.carouselSync = new Splide(this.syncElement, {
+        updateOnMove: syncOptions.updateOnMove || true,
+        perPage: syncOptions.desktopPerPage || 5,
+        type: syncOptions.type || 'loop',
+        focus: syncOptions.focus || 'center',
+        isNavigation: syncOptions.isNavigation || false,
+        pagination: syncOptions.pagination || false,
+        arrows: syncOptions.showArrows || false,
+        drag: syncOptions.drag || true,
+        breakpoints: {
+          767: {
+            height: 'auto',
+            direction: syncOptions.mobileDirection || 'ltr',
+            gap: syncOptions.gapMobile || 0,
+          }
+        },
+        // Conditional configuration for 'ttb' direction
+        ...(syncOptions.direction === 'ttb' && {
+          height: this.getPrimarySlideFirstImageHeight(),
+          direction: 'ttb',
+          autoHeight: syncOptions.autoHeight || true,
+        }),
+      });
+    
+      // Sync both carousels and mount them
+      this.carousel.sync(this.carouselSync);
+      this.carousel.mount();
+      this.carouselSync.mount();
+    }    
+
+    getPrimarySlideFirstImageHeight() {
+      const image = this.querySelector('.splide__list img');
+      const containerWidth = this.querySelector('.splide__list').clientWidth;
+  
+      const originalWidth = image.getAttribute('width');
+      const originalHeight = image.getAttribute('height');
+  
+      return (containerWidth / originalWidth) * originalHeight;
+    }
+  }
+
+  customElements.define('carousel-component', Carousel);
+}
