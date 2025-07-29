@@ -126,6 +126,12 @@
     "show_cart_note": false,
     "cart_drawer_collection": "",
     "cart_color_scheme": "scheme-1",
+    "enable free_gift_product": true,
+    "free_gift_product_1": "free-product-1",
+    "free_gift_product_2": "free-product",
+    "free_gift_product_3": "special-free-product",
+    "enable free_gift_collection": false,
+    "free_gift_collection_product_1": "collection-free-product",
     "sections": {
       "main-password-header": {
         "type": "main-password-header",

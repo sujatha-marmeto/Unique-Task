@@ -378,5 +378,14 @@
       {%- if settings.cart_type == 'drawer' -%}
         <script src="{{ 'cart-drawer.js' | asset_url }}" defer="defer"></script>
       {%- endif -%}
+      <!-- At the bottom of theme.liquid -->
+
+     {% if settings.enable_free_gift_product %}
+        <div id="free-gift-threshold">
+          {% render 'free-product-threshold' %}
+        </div>
+      {% endif %}
+      
+
     </body>
   </html>

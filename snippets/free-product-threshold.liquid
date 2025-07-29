@@ -1,0 +1,261 @@
+{% if settings.enable_free_gift_product %}
+  <div class="free-gift-container" style="margin: 20px 0;">
+    <div class="free-gift-message" style="padding: 10px; margin-bottom: 10px; border-radius: 4px; background: #f8f8f8;"></div>
+
+    <div class="progress-container" style="margin: 15px 0;">
+      <div class="progress-labels" style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+        <span class="current-value">₹{{ cart.total_price | divided_by: 100 }}</span>
+        <span class="next-threshold"></span>
+      </div>
+      <div class="progress-bar" style="height: 10px; background: #e0e0e0; border-radius: 5px; overflow: hidden;">
+        <div class="progress-fill" style="height: 100%; background: #FFC107; width: 0%; transition: all 0.5s ease;"></div>
+      </div>
+      <div class="progress-message" style="text-align: center; margin-top: 5px; font-size: 0.9em;"></div>
+    </div>
+  </div>
+
+ <script>
+window.initializeFreeGiftSystem = function () {
+  const thresholds = [
+    {% if settings.free_gift_product_1 and settings.thersold_price_1 %}
+    {
+      value: {{ settings.thersold_price_1 | plus: 0 }},
+      productId: {{ all_products[settings.free_gift_product_1].variants.first.id }},
+      message: "You've unlocked Free Gift 1!",
+      reward: "{{ settings.free_gift_product_1 | split: '/' | last | replace: '-', ' ' | capitalize }}",
+      color: "#4CAF50"
+    },
+    {% endif %}
+    {% if settings.free_gift_product_2 and settings.thersold_price_2 %}
+    {
+      value: {{ settings.thersold_price_2 | plus: 0 }},
+      productId: {{ all_products[settings.free_gift_product_2].variants.first.id }},
+      message: "You've unlocked Free Gift 2!",
+      reward: "{{ settings.free_gift_product_2 | split: '/' | last | replace: '-', ' ' | capitalize }}",
+      color: "#2196F3"
+    },
+    {% endif %}
+    {% if settings.free_gift_product_3 and settings.thersold_price_3 %}
+    {
+      value: {{ settings.thersold_price_3 | plus: 0 }},
+      productId: {{ all_products[settings.free_gift_product_3].variants.first.id }},
+      message: "You've unlocked Free Gift 3!",
+      reward: "{{ settings.free_gift_product_3 | split: '/' | last | replace: '-', ' ' | capitalize }}",
+      color: "#9C27B0"
+    }
+    {% endif %}
+  ].filter(t => t.productId).sort((a, b) => a.value - b.value);
+
+  let isProcessing = false;
+
+  async function updateFreeGiftSystem() {
+    if (isProcessing) return;
+    isProcessing = true;
+
+    try {
+      const cart = await fetch('/cart.js').then(res => res.json());
+      const cartTotal = cart.total_price / 100;
+
+      const reachedThresholds = thresholds.filter(t => cartTotal >= t.value);
+      const nextThreshold = thresholds.find(t => cartTotal < t.value);
+      const highestReached = reachedThresholds[reachedThresholds.length - 1];
+
+      updateProgressDisplay(cartTotal, nextThreshold, highestReached);
+      await syncFreeGifts(cart, reachedThresholds);
+
+    } catch (error) {
+      console.error('[FreeGift] Error:', error);
+    } finally {
+      isProcessing = false;
+    }
+  }
+
+  window.updateFreeGiftSystem = updateFreeGiftSystem;
+  updateFreeGiftSystem();
+
+  function updateProgressDisplay(cartTotal, nextThreshold, currentReward) {
+    const messageEl = document.querySelector('.free-gift-message');
+    const progressFill = document.querySelector('.progress-fill');
+    const currentValEl = document.querySelector('.current-value');
+    const nextThreshEl = document.querySelector('.next-threshold');
+    const progressMsgEl = document.querySelector('.progress-message');
+
+    currentValEl.textContent = `₹${cartTotal.toFixed(2)}`;
+
+    if (currentReward) {
+      progressFill.style.background = currentReward.color;
+      messageEl.textContent = currentReward.message;
+      messageEl.style.background = `${currentReward.color}20`;
+      messageEl.style.borderLeft = `4px solid ${currentReward.color}`;
+
+      if (nextThreshold) {
+        const progressPercent = Math.min(100, ((cartTotal - currentReward.value) / (nextThreshold.value - currentReward.value)) * 100);
+        nextThreshEl.textContent = `Next: ₹${nextThreshold.value} (${nextThreshold.reward})`;
+        progressMsgEl.textContent = `${Math.round(progressPercent)}% to next tier`;
+        progressFill.style.width = `${progressPercent}%`;
+      } else {
+        nextThreshEl.textContent = 'Maximum reward unlocked!';
+        progressMsgEl.textContent = 'Enjoy your free gifts';
+        progressFill.style.width = '100%';
+      }
+    } else if (nextThreshold) {
+      const progressPercent = Math.min(100, (cartTotal / nextThreshold.value) * 100);
+      progressFill.style.width = `${progressPercent}%`;
+      progressFill.style.background = '#FFC107';
+
+      messageEl.textContent = `Add ₹${(nextThreshold.value - cartTotal).toFixed(2)} to unlock ${nextThreshold.reward}`;
+      messageEl.style.background = '#fff8e1';
+      messageEl.style.borderLeft = '4px solid #FFC107';
+
+      nextThreshEl.textContent = `₹${nextThreshold.value} (${nextThreshold.reward})`;
+      progressMsgEl.textContent = `${Math.round(progressPercent)}% to first reward`;
+    }
+  }
+
+  async function syncFreeGifts(cart, reachedThresholds) {
+    const existingFreeGifts = cart.items.filter(item => item.properties && item.properties._free_gift);
+    let hasCartChanged = false;
+
+    for (const threshold of reachedThresholds) {
+      const existingGift = existingFreeGifts.find(item => item.variant_id == threshold.productId);
+      if (!existingGift || existingGift.quantity !== 1) {
+        if (existingGift) {
+          await fetch('/cart/change.js', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: existingGift.key, quantity: 0 })
+          });
+        }
+
+        await fetch('/cart/add.js', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items: [{
+              id: threshold.productId,
+              quantity: 1,
+              properties: { '_free_gift': 'true' }
+            }]
+          })
+        });
+
+        flashProgressBar(threshold.color);
+        hasCartChanged = true;
+      }
+    }
+
+    for (const gift of existingFreeGifts) {
+      const isStillEligible = reachedThresholds.some(t => t.productId == gift.variant_id);
+      if (!isStillEligible) {
+        await fetch('/cart/change.js', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: gift.key, quantity: 0 })
+        });
+        flashProgressBar('#f44336');
+        hasCartChanged = true;
+      }
+    }
+
+    if (hasCartChanged) {
+      await waitForShopifyCartUpdate();
+      await updateSections();
+    }
+  }
+
+  async function waitForShopifyCartUpdate(retries = 3) {
+    for (let i = 0; i < retries; i++) {
+      const cart = await fetch('/cart.js').then(res => res.json());
+      const brokenGift = cart.items.find(item =>
+        item.properties && item.properties._free_gift && item.quantity !== 1
+      );
+      if (!brokenGift) return;
+      await new Promise(r => setTimeout(r, 300));
+    }
+  }
+
+  async function updateSections() {
+    try {
+      const response = await fetch('/cart');
+      const htmlText = await response.text();
+      const html = new DOMParser().parseFromString(htmlText, 'text/html');
+
+      const selectors = ['#CartDrawer', '#cart-icon-bubble', '#free-gift-threshold'];
+      selectors.forEach(selector => {
+        const target = document.querySelector(selector);
+        const source = html.querySelector(selector);
+        if (target && source) {
+          target.replaceWith(source);
+          console.log(`[FreeGift] Replaced: ${selector}`);
+        } else {
+          console.warn(`[FreeGift] Not found: ${selector}`);
+        }
+      });
+
+      document.dispatchEvent(new CustomEvent('cart:updated'));
+    } catch (e) {
+      console.error('[FreeGift] Section update failed:', e);
+    }
+  }
+
+  function flashProgressBar(color) {
+    const progressFill = document.querySelector('.progress-fill');
+    const originalColor = progressFill.style.background;
+    const originalWidth = progressFill.style.width;
+    progressFill.style.background = color;
+    progressFill.style.width = '100%';
+    setTimeout(() => {
+      progressFill.style.background = originalColor;
+      progressFill.style.width = originalWidth;
+    }, 500);
+  }
+
+  const eventTypes = ['click', 'change', 'ajaxCart.afterCartLoad', 'cart:requestComplete', 'cart:change'];
+  const debouncedUpdate = debounce(updateFreeGiftSystem, 1000);
+  eventTypes.forEach(event => document.addEventListener(event, debouncedUpdate));
+
+  if (typeof MutationObserver !== 'undefined') {
+    const observer = new MutationObserver(debouncedUpdate);
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['class']
+    });
+  }
+
+  function debounce(fn, delay) {
+    let timeout;
+    return function () {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => fn.apply(this, arguments), delay);
+    };
+  }
+};
+
+document.addEventListener('DOMContentLoaded', window.initializeFreeGiftSystem);
+window.addEventListener('load', window.initializeFreeGiftSystem);
+document.addEventListener('cart:updated', () => {
+  if (typeof window.updateFreeGiftSystem === 'function') {
+    window.updateFreeGiftSystem();
+  }
+});
+</script>
+
+  <style>
+    .progress-fill {
+      transition: width 0.5s ease, background-color 0.3s ease;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+      100% { transform: scale(1); }
+    }
+
+    .free-gift-message {
+      animation: pulse 0.5s ease;
+      transition: all 0.3s ease;
+    }
+  </style>
+{% endif %}

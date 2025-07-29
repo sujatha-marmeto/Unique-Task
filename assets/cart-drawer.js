@@ -87,6 +87,16 @@ class CartDrawer extends HTMLElement {
       this.querySelector('#CartDrawer-Overlay').addEventListener('click', this.close.bind(this));
       this.open();
     });
+    // ✅ Dispatch event after DOM update
+    document.dispatchEvent(new CustomEvent('cart:updated'));
+
+
+    // ✅ Delay gift update to allow DOM to render fully
+  // setTimeout(() => {
+  //   if (typeof window.updateFreeGiftSystem === 'function') {
+  //     window.updateFreeGiftSystem();
+  //   }
+  // }, 10000);
   }
 
   getSectionInnerHTML(html, selector = '.shopify-section') {

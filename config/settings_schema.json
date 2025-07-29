@@ -1451,5 +1451,56 @@
         "default": "scheme-1"
       }
     ]
+  },
+  {
+    "name": "Free bee Products",
+    "settings": [
+      {
+        "type": "checkbox",
+        "id": "enable_free_gift_product",
+        "default": true,
+        "label": "Enable Free Gift Product",
+        "info": "Enable this option to show free gift product on cart page."
+      },
+      {
+        "type": "text",
+        "id": "thersold_price_1",
+        "label": "Threshold Price 1",
+        "info": "Enter the minimum cart value required to qualify for the free gift product.",
+        "default": "100"
+      },
+      {
+        "type": "product",
+        "id": "free_gift_product_1",
+        "label": "Select Free Gift Product 1",
+        "info": "Select the product that will be offered as a free gift when the conditions are met."
+      },
+       {
+        "type": "text",
+        "id": "thersold_price_2",
+        "label": "Threshold Price 2",
+        "info": "Enter the minimum cart value required to qualify for the free gift product.",
+        "default": "500"
+      },
+      {
+        "type": "product",
+        "id": "free_gift_product_2",
+        "label": "Select Free Gift Product 2",
+        "info": "Select the product that will be offered as a free gift when the conditions are met."
+      },
+      {
+        "type": "text",
+        "id": "thersold_price_3",
+        "label": "Threshold Price 3",
+        "info": "Enter the minimum cart value required to qualify for the free gift product.",
+        "default": "1000"
+      },
+      {
+        "type": "product",
+        "id": "free_gift_product_3",
+        "label": "Select Free Gift Product 3",
+        "info": "Select the product that will be offered as a free gift when the conditions are met."
+      }
+    ]
   }
 ]

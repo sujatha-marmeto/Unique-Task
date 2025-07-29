@@ -134,75 +134,17 @@
       "settings": {
         "desktop_per_page": 6,
         "mobile_per_page": 3,
-        "gap": 12,
-        "gap_mobile": 20,
+        "gap": 16,
+        "gap_mobile": 22,
         "show_arrows": true,
         "pagination": false
       }
     },
     "shop_the_look_modal_Dg3GD6": {
       "type": "shop-the-look-modal",
-      "blocks": {
-        "look_item_AXMe9x": {
-          "type": "look_item",
-          "settings": {
-            "look_viedo": "shopify://files/videos/whatmore_tn_8cbf0884-a09c-49e2-80bc-bd10f2c83e25.mp4",
-            "media_image": "shopify://shop_images/616b4ead-bbd9-4a16-aeab-8d331a16f697_600x_e3647190-e178-461b-b521-0dd4abf7a408.webp",
-            "collection_name": "Collection Name",
-            "product_1": "airdopes-1003",
-            "product_2": "airdopes-1003",
-            "product_3": "airdopes-1003"
-          }
-        },
-        "look_item_NyJize": {
-          "type": "look_item",
-          "settings": {
-            "look_viedo": "shopify://files/videos/whatmore_tn_8cbf0884-a09c-49e2-80bc-bd10f2c83e25.mp4",
-            "media_image": "shopify://shop_images/616b4ead-bbd9-4a16-aeab-8d331a16f697_600x_e3647190-e178-461b-b521-0dd4abf7a408.webp",
-            "collection_name": "Collection Name",
-            "product_1": "airdopes-1003",
-            "product_2": "airdopes-1003",
-            "product_3": "airdopes-1003"
-          }
-        },
-        "look_item_tqx3Ry": {
-          "type": "look_item",
-          "settings": {
-            "look_viedo": "shopify://files/videos/whatmore_tn_8cbf0884-a09c-49e2-80bc-bd10f2c83e25.mp4",
-            "media_image": "shopify://shop_images/616b4ead-bbd9-4a16-aeab-8d331a16f697_600x_e3647190-e178-461b-b521-0dd4abf7a408.webp",
-            "collection_name": "Collection Name",
-            "product_1": "airdopes-1003",
-            "product_2": "airdopes-1003",
-            "product_3": "airdopes-1003"
-          }
-        },
-        "look_item_EjmWY7": {
-          "type": "look_item",
-          "settings": {
-            "look_viedo": "shopify://files/videos/whatmore_tn_8cbf0884-a09c-49e2-80bc-bd10f2c83e25.mp4",
-            "media_image": "shopify://shop_images/616b4ead-bbd9-4a16-aeab-8d331a16f697_600x_e3647190-e178-461b-b521-0dd4abf7a408.webp",
-            "collection_name": "Collection Name",
-            "product_1": "airdopes-1003",
-            "product_2": "airdopes-1003",
-            "product_3": "airdopes-1003"
-          }
-        }
-      },
-      "block_order": [
-        "look_item_AXMe9x",
-        "look_item_NyJize",
-        "look_item_tqx3Ry",
-        "look_item_EjmWY7"
-      ],
+      "disabled": true,
       "name": "Shop The Look Carousel",
-      "settings": {
-        "desktop_per_page": 4,
-        "mobile_per_page": 1,
-        "gap": 32,
-        "gap_mobile": 8,
-        "show_arrows": true,
-        "pagination": false
-      }
+      "settings": {}
     }
   },
   "order": [

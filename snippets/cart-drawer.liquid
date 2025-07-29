@@ -74,6 +74,10 @@
           </span>
         </button>
       </div>
+      {% render 'free-product-threshold' %}  
+      {% comment %} <!-- Slot for free gift progress content -->
+<div id="FreeGiftSection"></div> {% endcomment %}
+
       <cart-drawer-items
         {% if cart == empty %}
           class=" is-empty"
@@ -118,7 +122,7 @@
 
                   <tbody role="rowgroup">
                     {%- for item in cart.items -%}
-                      <tr id="CartDrawer-Item-{{ item.index | plus: 1 }}" class="cart-item" role="row"
+                      <tr id="CartDrawer-Item-{{ item.index | plus: 1 }}" class="cart-item " role="row"
                       data-line-index="{{ item.index | plus: 1 }}">
                         <td class="cart-item__media" role="cell" headers="CartDrawer-ColumnProductImage">
                           {% if item.image %}
@@ -332,19 +336,21 @@
                                 </quantity-input>
                               </div>
                               <cart-remove-button
-                                data-line-item-key="{{ item.key }}"
-                              >
-                                <button
-                                  type="button"
-                                  class="button button--tertiary cart-remove-button"
-                                  aria-label="{{ 'sections.cart.remove_title' | t: title: item.title | escape }}"
-                                  data-variant-id="{{ item.variant.id }}"
-                                >
-                                  <span class="svg-wrapper">
-                                    {{ 'icon-remove.svg' | inline_asset_content }}
-                                  </span>
-                                </button>
-                              </cart-remove-button>
+  data-line-item-key="{{ item.key }}"
+  data-index="{{ forloop.index }}"
+>
+  <button
+    type="button"
+    class="button button--tertiary cart-remove-button"
+    aria-label="{{ 'sections.cart.remove_title' | t: title: item.title | escape }}"
+    data-variant-id="{{ item.variant.id }}"
+  >
+    <span class="svg-wrapper">
+      {{ 'icon-remove.svg' | inline_asset_content }}
+    </span>
+  </button>
+</cart-remove-button>
+
 
                             </div>
                             {%- if has_qty_rules or has_vol_pricing -%}

@@ -1,56 +1,103 @@
 class CartRemoveButton extends HTMLElement {
   constructor() {
     super();
+    this.addEventListener('click', this.handleClick.bind(this));
+    this.isProcessing = false;
+  }
 
-    this.addEventListener('click', async (event) => {
-      event.preventDefault();
+  async handleClick(event) {
+    event.preventDefault();
+    if (this.isProcessing) return;
+    this.isProcessing = true;
 
-      try {
-        const variantId = this.querySelector('button')?.dataset.variantId;
-        const lineItemKey = this.dataset.lineItemKey;
+    // const button = this.querySelector('button');
+    // const originalText = button?.textContent;
+    
+    try {
+      // Visual feedback
+      // if (button) {
+      //   button.disabled = true;
+      //   button.innerHTML = `
+      //     <span class="loading-spinner"></span>
+      //     Removing...
+      //   `;
+      // }
 
-        // Step 1: Get cart
-        const res = await fetch('/cart.js');
-        const cart = await res.json();
+      const lineItemKey = this.dataset.lineItemKey;
+      if (!lineItemKey) throw new Error('Missing line item key');
 
-        const updates = {};
+      // 1. Get current cart
+      const cart = await fetch('/cart.js').then(res => res.json());
+      if (!cart?.items) throw new Error('Invalid cart data');
 
-        // Step 2: Identify bundle group of clicked item
-        let bundleGroup = null;
+      // 2. Find item to remove
+      const itemToRemove = cart.items.find(item => item.key === lineItemKey);
+      if (!itemToRemove) throw new Error('Item not found in cart');
 
-        cart.items.forEach(item => {
-          if (item.key === lineItemKey && item.properties && item.properties._bundle_group) {
-            bundleGroup = item.properties._bundle_group;
-          }
-        });
+      // 3. Prepare updates
+      const updates = {};
+      const bundleGroup = itemToRemove.properties?._bundle_group;
+      const isFreeProduct = itemToRemove.properties?._free_gift === 'true';
 
-        // Step 3: Build updates object
-        cart.items.forEach(item => {
-          if (
-            // Remove entire bundle group
-            (bundleGroup && item.properties && item.properties._bundle_group === bundleGroup) ||
+      cart.items.forEach(item => {
+        if (bundleGroup && item.properties?._bundle_group === bundleGroup) {
+          updates[item.key] = 0;
+        }
+        else if (isFreeProduct && item.key === lineItemKey) {
+          updates[item.key] = 0;
+        }
+        else if (!bundleGroup && !isFreeProduct && item.key === lineItemKey) {
+          updates[item.key] = 0;
+        }
+      });
 
-            // Or remove normal (non-bundled) product
-            (!bundleGroup && item.id == variantId && (!item.properties || Object.keys(item.properties).length === 0))
-          ) {
-            updates[item.key] = 0;
-          }
-        });
+      // 4. Update cart
+      const updateResponse = await fetch('/cart/update.js', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates })
+      });
 
-        // Step 4: Send update
-        const updateRes = await fetch('/cart/update.js', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ updates })
-        });
+      if (!updateResponse.ok) throw new Error('Cart update failed');
 
-        // Step 5: Refresh cart UI
-        location.reload();
+      // 5. Force a full cart refresh to ensure free gifts are recalculated
+      const event = new CustomEvent('cart:updated', {
+        detail: { forceRefresh: true }
+      });
+      document.dispatchEvent(event);
 
-      } catch (error) {
-        console.error('Cart removal failed:', error);
+      // 6. Additional check for free gift system
+      setTimeout(() => {
+        if (typeof window.updateFreeGiftSystem === 'function') {
+          window.updateFreeGiftSystem();
+        }
+      }, 100);
+
+    } catch (error) {
+      console.error('Removal failed:', error);
+      this.showError(button, originalText);
+    } finally {
+      this.isProcessing = false;
+      this.resetButton(button, originalText);
+    }
+  }
+
+  showError(button, originalText) {
+    if (!button) return;
+    button.innerHTML = 'Error! Try again';
+    button.style.color = 'red';
+    setTimeout(() => {
+      if (button) {
+        button.innerHTML = originalText;
+        button.style.color = '';
       }
-    });
+    }, 2000);
+  }
+
+  resetButton(button, originalText) {
+    if (!button) return;
+    button.disabled = false;
+    button.innerHTML = originalText;
   }
 }
 
@@ -71,12 +118,17 @@ class CartItems extends HTMLElement {
 
   cartUpdateUnsubscriber = undefined;
 
-  connectedCallback() {
+   connectedCallback() {
     this.cartUpdateUnsubscriber = subscribe(PUB_SUB_EVENTS.cartUpdate, (event) => {
-      if (event.source === 'cart-items') {
-        return;
+      if (event.source === 'cart-items') return;
+      this.onCartUpdate();
+    });
+    
+    // Add listener for force refresh
+    document.addEventListener('cart:updated', (event) => {
+      if (event.detail?.forceRefresh) {
+        this.onCartUpdate();
       }
-      return this.onCartUpdate();
     });
   }
 
@@ -232,6 +284,18 @@ class CartItems extends HTMLElement {
               section.selector
             );
           });
+          // ✅ Dispatch event after DOM update
+          document.dispatchEvent(new CustomEvent('cart:updated'));
+
+          // ✅ Trigger free gift logic after cart content is updated
+          // setTimeout(() => {
+          //   if (typeof window.updateFreeGiftSystem === 'function') {
+          //     window.updateFreeGiftSystem();
+          //   } else {
+          //     console.warn('[FreeGift] updateFreeGiftSystem not found');
+          //   }
+          // }, 10000);
+
           const updatedValue = parsedState.items[line - 1] ? parsedState.items[line - 1].quantity : undefined;
           let message = '';
           if (items.length === parsedState.items.length && updatedValue !== parseInt(quantityElement.value)) {
